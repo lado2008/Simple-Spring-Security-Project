@@ -5,33 +5,28 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component
-@RequiredArgsConstructor
-@Qualifier("JwtBasedAuthenticationFilter")
 public class JwtBasedAuthenticationFilter extends OncePerRequestFilter {
+
     private final UserService userService;
+
+    public JwtBasedAuthenticationFilter(UserService userService) {
+        this.userService = userService;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String authenticationHeader = request.getHeader("authorization");
+        String authenticationHeader = request.getHeader("Authorization");
 
-        if (authenticationHeader == null || !authenticationHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        if (authenticationHeader != null && authenticationHeader.startsWith("Bearer ")) {
+            String token = authenticationHeader.replace("Bearer ", "");
+            SecurityContextHolder.getContext().setAuthentication(userService.authentication(token));
         }
 
-        String token = authenticationHeader.replace("Bearer ", "");
-        Authentication authentication = userService.authentication(token);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
     }
 }
